@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Расширенный таск-менеджер</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div id="auth">
+    <h2>Вход</h2>
+    <input type="text" id="login" placeholder="Логин"><br>
+    <input type="password" id="password" placeholder="Пароль"><br>
+    <button onclick="login()">Войти</button>
+    <button onclick="register()">Регистрация</button>
+  </div>
+
+  <div id="app" style="display:none;">
+    <h1>Мои задачи</h1>
+    <form id="task-form">
+      <input id="title" placeholder="Заголовок"><br>
+      <textarea id="description" placeholder="Описание"></textarea><br>
+      <select id="category_id">
+        <option value="1">Работа</option>
+        <option value="2">Личное</option>
+        <option value="3">Учёба</option>
+      </select><br>
+      <select id="priority">
+        <option value="low">Низкий</option>
+        <option value="medium">Средний</option>
+        <option value="high">Высокий</option>
+      </select><br>
+      <input type="date" id="deadline"><br>
+      <button type="submit">Добавить</button>
+      <button type="button" onclick="logout()">Выйти</button>
+    </form>
+    <div id="tasks"></div>
+  </div>
+
+  <script src="../assets/app.js"></script>
+</body>
+</html>

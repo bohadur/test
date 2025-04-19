@@ -1,0 +1,31 @@
+BAHODUR
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <h2>Вход</h2>
+  <input type="text" id="login" placeholder="Логин"><br>
+  <input type="password" id="password" placeholder="Пароль"><br>
+  <button onclick="login()">Войти</button>
+  <p>Нет аккаунта? <a href="register.html">Зарегистрироваться</a></p>
+  <script>
+    async function login() {
+      const username = document.getElementById("login").value;
+      const password = document.getElementById("password").value;
+      const res = await fetch("../api/login.php", {
+        method: "POST",
+        body: JSON.stringify({ username, password })
+      });
+      if (res.ok) {
+        location.href = "tasks.html";
+      } else {
+        alert("Ошибка входа");
+      }
+    }
+  </script>
+</body>
+</html>

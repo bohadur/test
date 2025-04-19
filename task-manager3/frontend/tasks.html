@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои задачи</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <h1>Мои задачи</h1>
+  <div class="controls">
+    <input type="text" id="search" placeholder="Поиск..." oninput="loadTasks()">
+    <select id="sort" onchange="loadTasks()">
+      <option value="deadline">По дедлайну</option>
+      <option value="priority">По приоритету</option>
+      <option value="title">По названию</option>
+    </select>
+    <select id="status" onchange="loadTasks()">
+      <option value="all">Все</option>
+      <option value="done">Выполненные</option>
+      <option value="undone">Невыполненные</option>
+    </select>
+    <button onclick="logout()">Выйти</button>
+  </div>
+
+  <form id="task-form">
+    <input id="title" placeholder="Заголовок" required>
+    <textarea id="description" placeholder="Описание"></textarea>
+    <select id="category_id">
+      <option value="1">Работа</option>
+      <option value="2">Личное</option>
+      <option value="3">Учёба</option>
+    </select>
+    <select id="priority">
+      <option value="low">Низкий</option>
+      <option value="medium" selected>Средний</option>
+      <option value="high">Высокий</option>
+    </select>
+    <input type="date" id="deadline">
+    <input type="hidden" id="task_id">
+    <button type="submit">Сохранить</button>
+    <button type="button" onclick="resetForm()">Очистить</button>
+  </form>
+
+  <div id="tasks" class="droppable"></div>
+
+  <script>
+    async function logout() {
+      await fetch("../api/logout.php");
+      location.href = "login.html";
+    }
+
+    document.getElementById("task-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const id = document.getElementById("task_id").value;
+      const url = id ? "../api/update_task.php" : "../api/add_task.php";
+      const data = {
+        id,
+        title: document.getElementById("title").value,
+        description: document.getElementById("description").value,
+        category_id: document.getElementById("category_id").value,
+        priority: document.getElementById("priority").value,
+        deadline: document.getElementById("deadline").value
+      };
+      await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+      resetForm();
+      loadTasks();
+    });
+
+    function resetForm() {
+      document.getElementById("task-form").reset();
+      document.getElementById("task_id").value = "";
+    }
+
+    async function deleteTask(id) {
+      if (confirm("Удалить задачу?")) {
+        await fetch("../api/delete_task.php", {
+          method: "POST",
+          body: JSON.stringify({ id })
+        });
+        loadTasks();
+      }
+    }
+
+    function editTask(task) {
+      document.getElementById("task_id").value = task.id;
+      document.getElementById("title").value = task.title;
+      document.getElementById("description").value = task.description;
+      document.getElementById("category_id").value = task.category_id;
+      document.getElementById("priority").value = task.priority;
+      document.getElementById("deadline").value = task.deadline;
+    }
+
+    async function loadTasks() {
+      const res = await fetch("../api/get_tasks.php");
+      const tasks = await res.json();
+      const list = document.getElementById("tasks");
+      const search = document.getElementById("search").value.toLowerCase();
+      const sort = document.getElementById("sort").value;
+      const status = document.getElementById("status").value;
+
+      const today = new Date().toISOString().split("T")[0];
+      const filtered = tasks
+        .filter(t => t.title.toLowerCase().includes(search) || t.description.toLowerCase().includes(search))
+        .filter(t => status === 'all' || (status === 'done' && t.is_done == 1) || (status === 'undone' && t.is_done == 0))
+        .sort((a, b) => {
+          if (sort === "priority") return a.priority.localeCompare(b.priority);
+          if (sort === "title") return a.title.localeCompare(b.title);
+          if (sort === "deadline") return (a.deadline || "").localeCompare(b.deadline || "");
+        });
+
+      list.innerHTML = "";
+      filtered.forEach(t => {
+        const div = document.createElement("div");
+        div.className = `task ${t.priority}` + (t.deadline < today && t.is_done == 0 ? " overdue" : "");
+        div.setAttribute("draggable", true);
+        div.ondragstart = e => {
+          e.dataTransfer.setData("text/plain", t.id);
+        };
+        div.innerHTML = `
+          <div class="task-header">
+            <strong>${t.title}</strong>
+            <span class="task-controls">
+              <button onclick='editTask(${JSON.stringify(t)})'>✏️</button>
+              <button onclick="deleteTask(${t.id})">🗑</button>
+            </span>
+          </div>
+          <div class="task-meta">
+            Категория: ${t.category}<br>
+            Приоритет: ${t.priority}, Срок: ${t.deadline || "—"}
+          </div>
+          <div class="task-desc">${t.description}</div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    document.getElementById("tasks").addEventListener("dragover", e => e.preventDefault());
+    document.getElementById("tasks").addEventListener("drop", async e => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("text/plain");
+      const task = await fetch("../api/get_tasks.php").then(res => res.json()).then(all => all.find(t => t.id == id));
+      if (task) {
+        task.is_done = task.is_done == 1 ? 0 : 1;
+        await fetch("../api/update_task.php", {
+          method: "POST",
+          body: JSON.stringify(task)
+        });
+        loadTasks();
+      }
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>
